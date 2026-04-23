@@ -1,0 +1,214 @@
+{{ define "content" }}
+{{ $canEditQuestion := true }}
+{{ if .CurrentUser.ActiveQuestion }}
+    {{ range .QuestionGroups }}
+        {{ if eq .ID $.CurrentUser.ActiveQuestion.ID }}
+            {{ if gt (len .Responses) 0 }}
+                {{ $canEditQuestion = false }}
+            {{ end }}
+        {{ end }}
+    {{ end }}
+{{ end }}
+<section class="hero">
+    <span class="eyebrow">Your Dashboard</span>
+    <p class="subtitle">{{ .Subtitle }}</p>
+    <p class="welcome-banner">Signed in as <strong>{{ .CurrentUser.Email }}</strong>.</p>
+    <p class="status-pill status-pill-{{ .CurrentUser.UserStatus }}">
+        User ID status:
+        <strong>
+            {{ if eq .CurrentUser.UserStatus .UserStatusValidated }}
+            Validated
+            {{ else }}
+            Unvalidated
+            {{ end }}
+        </strong>
+    </p>
+
+    {{ if .ValidationNotice }}
+    <p class="form-message form-message-success">{{ .ValidationNotice }}</p>
+    {{ end }}
+
+    {{ if .ValidationLink }}
+    <p class="auth-meta"><a href="{{ .ValidationLink }}">Open your local validation link</a></p>
+    {{ end }}
+
+    {{ if .ProfileError }}
+    <p class="form-message form-message-error">{{ .ProfileError }}</p>
+    {{ end }}
+
+    {{ if .ProfileSuccess }}
+    <p class="form-message form-message-success">{{ .ProfileSuccess }}</p>
+    {{ end }}
+
+    <a class="api-link" href="/user/{{ .CurrentUser.ProfileName }}">
+        View your public page at /user/{{ .CurrentUser.ProfileName }}
+    </a>
+
+    <form action="/profile" method="post" class="auth-form panel-form">
+        <span class="eyebrow">Your Profile</span>
+        <input type="hidden" name="profile_action" value="name">
+        <label class="field">
+            <span>Profile name</span>
+            <input
+                type="text"
+                name="profile_name"
+                maxlength="{{ .ProfileNameMaxLength }}"
+                value="{{ .ProfileNameDraft }}"
+                placeholder="Blindspot"
+                required
+            >
+        </label>
+
+        <p class="field-hint">Maximum {{ .ProfileNameMaxLength }} characters. Must be unique.</p>
+        <button type="submit" class="primary-button">Save profile name</button>
+    </form>
+</section>
+
+<section class="panel panel-spaced">
+    <span class="eyebrow">Your Question</span>
+    <h2>
+        {{ if and .CurrentUser.ActiveQuestion (not $canEditQuestion) }}
+        Your active question
+        {{ else if .CurrentUser.ActiveQuestion }}
+        Update your active question
+        {{ else }}
+        Create a new question
+        {{ end }}
+    </h2>
+    <p>Manage your single active question separately from your public profile name.</p>
+    {{ if ne .CurrentUser.UserStatus .UserStatusValidated }}
+    <p class="field-hint">Validate your email before creating your first question.</p>
+    {{ end }}
+    {{ if and .CurrentUser.ActiveQuestion (not $canEditQuestion) }}
+    <p class="field-hint">This question already has responses, so it can no longer be edited. Complete it to start a new question.</p>
+    {{ end }}
+
+    {{ if .QuestionActionError }}
+    <p class="form-message form-message-error">{{ .QuestionActionError }}</p>
+    {{ end }}
+
+    {{ if .QuestionActionSuccess }}
+    <p class="form-message form-message-success">{{ .QuestionActionSuccess }}</p>
+    {{ end }}
+
+    <form action="/profile" method="post" class="auth-form panel-form">
+        <input type="hidden" name="profile_action" value="question">
+        <input type="hidden" name="profile_name" value="{{ .ProfileNameDraft }}">
+        <label class="field">
+            <span>{{ if .CurrentUser.ActiveQuestion }}Active question{{ else }}Question{{ end }}</span>
+            <textarea
+                name="profile_question"
+                maxlength="{{ .QuestionMaxLength }}"
+                rows="6"
+                placeholder="What is the one question you want help uncovering?"
+                {{ if or (and .CurrentUser.ActiveQuestion (not $canEditQuestion)) (and (not .CurrentUser.ActiveQuestion) (ne .CurrentUser.UserStatus .UserStatusValidated)) }}disabled{{ end }}
+            >{{ .QuestionDraft }}</textarea>
+        </label>
+        <p class="field-hint">Maximum {{ .QuestionMaxLength }} characters.</p>
+        {{ if not (and .CurrentUser.ActiveQuestion (not $canEditQuestion)) }}
+        <button type="submit" class="primary-button" {{ if and (not .CurrentUser.ActiveQuestion) (ne .CurrentUser.UserStatus .UserStatusValidated) }}disabled{{ end }}>
+            {{ if .CurrentUser.ActiveQuestion }}Save active question{{ else }}Create question{{ end }}
+        </button>
+        {{ end }}
+    </form>
+
+    {{ if .CurrentUser.ActiveQuestion }}
+    <form action="/question/complete" method="post" class="inline-form">
+        <button type="submit" class="secondary-button">Mark current question as completed</button>
+    </form>
+    {{ end }}
+</section>
+
+<section class="panel panel-spaced">
+    <span class="eyebrow">Question History</span>
+    <h2>Responses by question</h2>
+    {{ if .QuestionGroups }}
+    <div class="notes">
+        {{ range .QuestionGroups }}
+        <article class="note">
+            <h3>
+                {{ if eq .Status "active" }}Active question{{ else }}Completed question{{ end }}
+            </h3>
+            <p>{{ .QuestionText }}</p>
+            <p class="field-hint">
+                Status: {{ .Status }} | Asked: {{ .Created }}
+                {{ if .CompletedAt }}| Completed: {{ .CompletedAt }}{{ end }}
+            </p>
+
+            {{ if .Responses }}
+            <div class="responses-list">
+                {{ range .Responses }}
+                <article class="response-card">
+                    <p>{{ .AnswerText }}</p>
+                    <p class="field-hint">Delivery status: {{ .DeliveryStatus }} | Received: {{ .Created }}</p>
+                </article>
+                {{ end }}
+            </div>
+            {{ else }}
+            <p class="field-hint">No responses have been submitted for this question yet.</p>
+            {{ end }}
+        </article>
+        {{ end }}
+    </div>
+    {{ else }}
+    <p>You have not created a question yet.</p>
+    {{ end }}
+</section>
+
+<section class="panel panel-spaced danger-panel">
+    <span class="eyebrow">Delete Account</span>
+    <h2>Delete your account</h2>
+    <p>This permanently deletes your account, your questions, and all attached responses.</p>
+    <p class="danger-copy">This action is irreversible.</p>
+
+    <button type="button" class="danger-button" id="open-delete-account-dialog">Delete my account</button>
+
+    <dialog class="danger-dialog" id="delete-account-dialog">
+        <form action="/account/delete" method="post" class="auth-form panel-form danger-dialog-form">
+            <span class="eyebrow">Final confirmation</span>
+            <h3>Type YES in all caps to delete your account</h3>
+            <p>This will permanently remove your account, questions, and responses.</p>
+
+            {{ if .DeleteAccountError }}
+            <p class="form-message form-message-error">{{ .DeleteAccountError }}</p>
+            {{ end }}
+
+            <label class="field">
+                <span>Confirmation</span>
+                <input
+                    type="text"
+                    name="delete_confirmation"
+                    value="{{ .DeleteAccountConfirmationDraft }}"
+                    placeholder="YES"
+                    autocomplete="off"
+                    required
+                >
+            </label>
+            <p class="field-hint">Only the exact value <strong>YES</strong> will be accepted.</p>
+
+            <div class="danger-dialog-actions">
+                <button type="submit" class="danger-button">Confirm permanent deletion</button>
+                <button type="button" class="secondary-button" id="cancel-delete-account-dialog">Cancel</button>
+            </div>
+        </form>
+    </dialog>
+</section>
+
+<script>
+(() => {
+    const dialog = document.getElementById("delete-account-dialog");
+    const openButton = document.getElementById("open-delete-account-dialog");
+    const cancelButton = document.getElementById("cancel-delete-account-dialog");
+    if (!dialog || !openButton || !cancelButton || typeof dialog.showModal !== "function") {
+        return;
+    }
+
+    openButton.addEventListener("click", () => dialog.showModal());
+    cancelButton.addEventListener("click", () => dialog.close());
+
+    {{ if .DeleteAccountError }}
+    dialog.showModal();
+    {{ end }}
+})();
+</script>
+{{ end }}

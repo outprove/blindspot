@@ -1,0 +1,14 @@
+.gocache/
+.gomodcache/
+.venv/
+tools/
+
+pb_data/
+pb_data_*/
+
+config.json
+
+*.exe
+*.exe~
+server.out
+server.err

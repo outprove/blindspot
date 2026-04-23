@@ -1,0 +1,12 @@
+.git
+.gocache
+.gomodcache
+.venv
+tools
+*.exe
+*.exe~
+server.out
+server.err
+pb_data
+pb_data_*
+config.json

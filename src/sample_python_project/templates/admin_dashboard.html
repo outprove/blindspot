@@ -1,0 +1,33 @@
+{{ define "content" }}
+<section class="hero">
+    <span class="eyebrow">Admin</span>
+    <h1>User management</h1>
+    <p class="subtitle">Signed in as <strong>{{ .AdminEmail }}</strong>. Review users, inspect their questions and responses, or remove accounts.</p>
+    <form action="/admin-panel/logout" method="post" class="inline-form">
+        <button type="submit" class="secondary-button">Log out</button>
+    </form>
+</section>
+
+<section class="panel">
+    <span class="eyebrow">Users</span>
+    <h2>All registered users</h2>
+    {{ if .Users }}
+    <div class="notes">
+        {{ range .Users }}
+        <article class="note">
+            <h3>{{ .Email }}</h3>
+            <p class="field-hint">Profile ID: {{ .ProfileName }} | Status: {{ .UserStatus }}</p>
+            <div class="admin-actions">
+                <a class="secondary-button admin-link-button" href="/admin-panel/users/{{ .ID }}">View details</a>
+                <form action="/admin-panel/users/{{ .ID }}/delete" method="post" class="nav-form">
+                    <button type="submit" class="secondary-button">Delete user</button>
+                </form>
+            </div>
+        </article>
+        {{ end }}
+    </div>
+    {{ else }}
+    <p>No users found.</p>
+    {{ end }}
+</section>
+{{ end }}

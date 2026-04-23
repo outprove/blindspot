@@ -1,0 +1,71 @@
+{{ define "content" }}
+<section class="hero">
+    <span class="eyebrow">Public Profile</span>
+    <h1>{{ .ProfileUser.ProfileName }}</h1>
+    <div class="profile-share-row">
+        <span class="field-hint">Profile ID: <strong>{{ .ProfileUser.ProfileName }}</strong></span>
+        <button type="button" class="secondary-button share-button" onclick="copyProfileUrl()">Share</button>
+    </div>
+    <p class="subtitle">Reply to this user's question through a simple anonymous answer form.</p>
+    <p id="share-status" class="field-hint share-status" aria-live="polite"></p>
+</section>
+
+<section class="panel">
+    <span class="eyebrow">Question</span>
+    <h2>Current profile question</h2>
+    {{ if .ActiveQuestion }}
+    <div class="readonly-question">{{ .ActiveQuestion.QuestionText }}</div>
+    {{ else }}
+    <p>This user has not published a question yet.</p>
+    {{ end }}
+</section>
+
+{{ if .ActiveQuestion }}
+<section class="panel panel-spaced">
+    <span class="eyebrow">Your Answer</span>
+    {{ if .SubmissionSuccess }}
+    <h2>Thanks for sharing your response</h2>
+    <p>Your answer has been received successfully. We appreciate you taking the time to help.</p>
+    {{ else }}
+    <h2>Send your response</h2>
+    <p>You can answer whether or not you have an account. Your response is anonymous and will be emailed to this user.</p>
+    {{ end }}
+
+    {{ if .SubmissionError }}
+    <p class="form-message form-message-error">{{ .SubmissionError }}</p>
+    {{ end }}
+
+    {{ if .SubmissionSuccess }}
+    <p class="form-message form-message-success">{{ .SubmissionSuccess }}</p>
+    {{ else }}
+    <form action="/user/{{ .ProfileUser.ProfileName }}" method="post" class="auth-form panel-form">
+        <label class="field">
+            <span>Your anonymous answer</span>
+            <textarea
+                name="answer_text"
+                maxlength="{{ .AnswerMaxLength }}"
+                rows="7"
+                placeholder="Share your answer here..."
+                required
+            >{{ .AnswerDraft }}</textarea>
+        </label>
+
+        <p class="field-hint">Maximum {{ .AnswerMaxLength }} characters.</p>
+        <button type="submit" class="primary-button">
+            Send answer
+        </button>
+    </form>
+    {{ end }}
+</section>
+{{ end }}
+<script>
+function copyProfileUrl() {
+    const status = document.getElementById("share-status");
+    navigator.clipboard.writeText(window.location.href).then(function () {
+        status.textContent = "Profile link copied to clipboard.";
+    }).catch(function () {
+        status.textContent = "Couldn't copy automatically. Copy the URL from your browser instead.";
+    });
+}
+</script>
+{{ end }}

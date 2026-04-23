@@ -1,0 +1,27 @@
+{{ define "content" }}
+<section class="auth-shell">
+    <section class="auth-panel">
+        <span class="eyebrow">Admin</span>
+        <h1 class="auth-title">Admin login</h1>
+        <p class="subtitle">Use the configured admin credentials to manage users and review question activity.</p>
+
+        {{ if .Error }}
+        <p class="form-message form-message-error">{{ .Error }}</p>
+        {{ end }}
+
+        <form action="/admin-panel/login" method="post" class="auth-form">
+            <label class="field">
+                <span>Email</span>
+                <input type="email" name="email" value="{{ .FormEmail }}" required>
+            </label>
+
+            <label class="field">
+                <span>Password</span>
+                <input type="password" name="password" required>
+            </label>
+
+            <button type="submit" class="primary-button">Log in as admin</button>
+        </form>
+    </section>
+</section>
+{{ end }}

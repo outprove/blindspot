@@ -1,0 +1,18 @@
+{{ define "content" }}
+<section class="auth-shell">
+    <section class="auth-panel">
+        <span class="eyebrow">Email Validation</span>
+        <h1 class="auth-title">Validate your email</h1>
+
+        {{ if .Error }}
+        <p class="form-message form-message-error">{{ .Error }}</p>
+        <p class="auth-meta"><a href="/register">Create a new account</a> or <a href="/login">return to log in</a>.</p>
+        {{ end }}
+
+        {{ if .Success }}
+        <p class="form-message form-message-success">{{ .Success }}</p>
+        <p class="auth-meta"><a href="/">Go to the dashboard</a></p>
+        {{ end }}
+    </section>
+</section>
+{{ end }}

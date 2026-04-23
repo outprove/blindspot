@@ -1,0 +1,42 @@
+{{ define "content" }}
+<section class="hero">
+    <span class="eyebrow">Admin</span>
+    <h1>{{ .ManagedUser.Email }}</h1>
+    <p class="subtitle">Profile ID: {{ .ManagedUser.ProfileName }} | Status: {{ .ManagedUser.UserStatus }}</p>
+    <p class="auth-meta"><a href="/admin-panel">Back to all users</a></p>
+</section>
+
+<section class="panel">
+    <span class="eyebrow">Questions</span>
+    <h2>Questions and answers</h2>
+    {{ if .QuestionGroups }}
+    <div class="notes">
+        {{ range .QuestionGroups }}
+        <article class="note">
+            <h3>{{ if eq .Status "active" }}Active question{{ else }}Completed question{{ end }}</h3>
+            <p>{{ .QuestionText }}</p>
+            <p class="field-hint">
+                Status: {{ .Status }} | Asked: {{ .Created }}
+                {{ if .CompletedAt }}| Completed: {{ .CompletedAt }}{{ end }}
+            </p>
+
+            {{ if .Responses }}
+            <div class="responses-list">
+                {{ range .Responses }}
+                <article class="response-card">
+                    <p>{{ .AnswerText }}</p>
+                    <p class="field-hint">Delivery status: {{ .DeliveryStatus }} | Received: {{ .Created }}</p>
+                </article>
+                {{ end }}
+            </div>
+            {{ else }}
+            <p class="field-hint">No responses attached to this question.</p>
+            {{ end }}
+        </article>
+        {{ end }}
+    </div>
+    {{ else }}
+    <p>This user has not created any questions yet.</p>
+    {{ end }}
+</section>
+{{ end }}

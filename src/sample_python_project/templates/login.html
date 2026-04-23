@@ -1,0 +1,30 @@
+{{ define "content" }}
+<section class="auth-shell">
+    <section class="auth-panel">
+        <span class="eyebrow">Welcome Back</span>
+        <h1 class="auth-title">Log in</h1>
+        <p class="subtitle">Use your account to access your dashboard.</p>
+
+        {{ if .Error }}
+        <p class="form-message form-message-error">{{ .Error }}</p>
+        {{ end }}
+
+        <form action="/login" method="post" class="auth-form">
+            <label class="field">
+                <span>Email</span>
+                <input type="email" name="email" value="{{ .FormEmail }}" required>
+            </label>
+
+            <label class="field">
+                <span>Password</span>
+                <input type="password" name="password" minlength="8" required>
+            </label>
+
+            <button type="submit" class="primary-button">Log in</button>
+        </form>
+
+        <p class="auth-meta">Need an account? <a href="/register">Create one</a>.</p>
+        <p class="auth-meta"><a href="/forgot-password">Forgot your password?</a></p>
+    </section>
+</section>
+{{ end }}

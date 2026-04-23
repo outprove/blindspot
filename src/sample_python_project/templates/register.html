@@ -1,0 +1,29 @@
+{{ define "content" }}
+<section class="auth-shell">
+    <section class="auth-panel">
+        <span class="eyebrow">New Account</span>
+        <h1 class="auth-title">Create your account</h1>
+        <p class="subtitle">Start with an email and password to begin collecting blindspot feedback.</p>
+
+        {{ if .Error }}
+        <p class="form-message form-message-error">{{ .Error }}</p>
+        {{ end }}
+
+        <form action="/register" method="post" class="auth-form">
+            <label class="field">
+                <span>Email</span>
+                <input type="email" name="email" value="{{ .FormEmail }}" required>
+            </label>
+
+            <label class="field">
+                <span>Password</span>
+                <input type="password" name="password" minlength="8" required>
+            </label>
+
+            <button type="submit" class="primary-button">Create account</button>
+        </form>
+
+        <p class="auth-meta">Already registered? <a href="/login">Log in here</a>.</p>
+    </section>
+</section>
+{{ end }}
