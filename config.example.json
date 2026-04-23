@@ -1,10 +1,15 @@
 {
   "session_secret": "replace-this-with-a-real-secret",
+  "email_provider": "smtp",
   "smtp": {
     "host": "smtp.example.com",
     "port": "587",
     "username": "user@example.com",
     "password": "app-password-or-smtp-password",
     "from_email": "noreply@example.com"
+  },
+  "resend": {
+    "api_key": "re_xxxxxxxxx",
+    "from_email": "Blindspot <onboarding@yourdomain.com>"
   }
 }

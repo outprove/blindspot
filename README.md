@@ -54,11 +54,14 @@ Edit `config.json` to control local runtime settings.
 Key fields:
 
 - `session_secret` signs login sessions
+- `email_provider` chooses `smtp` or `resend`
 - `smtp.host`
 - `smtp.port`
 - `smtp.username`
 - `smtp.password`
 - `smtp.from_email`
+- `resend.api_key`
+- `resend.from_email`
 
 `config.example.json` shows a filled-in example. If the SMTP host or from-email is left blank, the app keeps the current fallback behavior and skips email delivery.
 
@@ -89,11 +92,14 @@ Important deployment note:
 ```text
 SESSION_SECRET=use-a-long-random-secret
 ADMIN_PASSWORD=choose-a-real-admin-password
+EMAIL_PROVIDER=smtp
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USERNAME=
 SMTP_PASSWORD=
 SMTP_FROM_EMAIL=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
 ```
 
 6. Deploy.
@@ -103,4 +109,5 @@ SMTP_FROM_EMAIL=
 
 - `config.json` is intentionally excluded from the Docker build.
 - The app will start even without `config.json`; Railway env vars now override file-based config.
-- If SMTP values are blank, email delivery keeps the current local-fallback behavior.
+- If `EMAIL_PROVIDER=resend`, the app uses the Resend Email API instead of SMTP.
+- If the selected provider is not configured, email delivery keeps the current fallback behavior.

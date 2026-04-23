@@ -8,10 +8,12 @@
 
         <div class="panel panel-spaced">
             <span class="eyebrow">Current config</span>
+            <p><strong>Provider:</strong> {{ .EmailProvider }}</p>
             <p><strong>Host:</strong> {{ .SMTPHost }}</p>
             <p><strong>Port:</strong> {{ .SMTPPort }}</p>
             <p><strong>Username:</strong> {{ .SMTPUsername }}</p>
             <p><strong>From:</strong> {{ .SMTPFromEmail }}</p>
+            <p><strong>Resend from:</strong> {{ .ResendFromEmail }}</p>
         </div>
 
         {{ if .Error }}

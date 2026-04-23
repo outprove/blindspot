@@ -4,8 +4,10 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"net/http"
 	"net/smtp"
 	"os"
 	"strconv"
@@ -16,9 +18,11 @@ import (
 var appConfig = defaultAppConfig()
 
 type AppConfig struct {
-	SessionSecret string      `json:"session_secret"`
-	SMTP          SMTPConfig  `json:"smtp"`
-	Admin         AdminConfig `json:"admin"`
+	SessionSecret string       `json:"session_secret"`
+	EmailProvider string       `json:"email_provider"`
+	SMTP          SMTPConfig   `json:"smtp"`
+	Resend        ResendConfig `json:"resend"`
+	Admin         AdminConfig  `json:"admin"`
 }
 
 type SMTPConfig struct {
@@ -33,9 +37,15 @@ type AdminConfig struct {
 	Password string `json:"password"`
 }
 
+type ResendConfig struct {
+	APIKey    string `json:"api_key"`
+	FromEmail string `json:"from_email"`
+}
+
 func defaultAppConfig() AppConfig {
 	return AppConfig{
 		SessionSecret: "dev-session-secret-change-me",
+		EmailProvider: "smtp",
 		SMTP: SMTPConfig{
 			Port: "587",
 		},
@@ -64,6 +74,10 @@ func loadAppConfig(path string) AppConfig {
 	if cfg.SessionSecret == "" {
 		cfg.SessionSecret = "dev-session-secret-change-me"
 	}
+	cfg.EmailProvider = strings.ToLower(strings.TrimSpace(cfg.EmailProvider))
+	if cfg.EmailProvider == "" {
+		cfg.EmailProvider = "smtp"
+	}
 
 	cfg.SMTP.Host = strings.TrimSpace(cfg.SMTP.Host)
 	cfg.SMTP.Port = strings.TrimSpace(cfg.SMTP.Port)
@@ -74,6 +88,8 @@ func loadAppConfig(path string) AppConfig {
 	}
 
 	cfg.Admin.Password = strings.TrimSpace(cfg.Admin.Password)
+	cfg.Resend.APIKey = strings.TrimSpace(cfg.Resend.APIKey)
+	cfg.Resend.FromEmail = strings.TrimSpace(cfg.Resend.FromEmail)
 
 	applyEnvOverrides(&cfg)
 
@@ -84,6 +100,9 @@ func loadAppConfig(path string) AppConfig {
 func applyEnvOverrides(cfg *AppConfig) {
 	if value := strings.TrimSpace(os.Getenv("SESSION_SECRET")); value != "" {
 		cfg.SessionSecret = value
+	}
+	if value := strings.TrimSpace(os.Getenv("EMAIL_PROVIDER")); value != "" {
+		cfg.EmailProvider = strings.ToLower(value)
 	}
 
 	if value := strings.TrimSpace(os.Getenv("SMTP_HOST")); value != "" {
@@ -104,9 +123,18 @@ func applyEnvOverrides(cfg *AppConfig) {
 	if value := os.Getenv("ADMIN_PASSWORD"); value != "" {
 		cfg.Admin.Password = strings.TrimSpace(value)
 	}
+	if value := os.Getenv("RESEND_API_KEY"); value != "" {
+		cfg.Resend.APIKey = strings.TrimSpace(value)
+	}
+	if value := strings.TrimSpace(os.Getenv("RESEND_FROM_EMAIL")); value != "" {
+		cfg.Resend.FromEmail = value
+	}
 
 	if cfg.SMTP.Port == "" {
 		cfg.SMTP.Port = "587"
+	}
+	if cfg.EmailProvider == "" {
+		cfg.EmailProvider = "smtp"
 	}
 
 	// Railway exposes a PORT env var. We don't store it in config, but validating
@@ -118,13 +146,30 @@ func applyEnvOverrides(cfg *AppConfig) {
 	}
 }
 
+func (c AppConfig) sendMail(recipientEmail string, body string) error {
+	_, err := c.sendMailWithTrace(recipientEmail, body)
+	return err
+}
+
+func (c AppConfig) sendMailWithTrace(recipientEmail string, body string) ([]string, error) {
+	switch strings.ToLower(strings.TrimSpace(c.EmailProvider)) {
+	case "", "smtp":
+		return c.SMTP.sendMailWithTrace(recipientEmail, body)
+	case "resend":
+		return c.Resend.sendMailWithTrace(recipientEmail, body)
+	default:
+		return []string{
+			fmt.Sprintf("%s Unknown email provider %q", time.Now().UTC().Format(time.RFC3339), c.EmailProvider),
+		}, fmt.Errorf("unsupported email provider %q", c.EmailProvider)
+	}
+}
+
 func (c SMTPConfig) isConfigured() bool {
 	return c.Host != "" && c.FromEmail != ""
 }
 
-func (c SMTPConfig) sendMail(recipientEmail string, body string) error {
-	_, err := c.sendMailWithTrace(recipientEmail, body)
-	return err
+func (c ResendConfig) isConfigured() bool {
+	return c.APIKey != "" && c.FromEmail != ""
 }
 
 func (c SMTPConfig) sendMailWithTrace(recipientEmail string, body string) ([]string, error) {
@@ -229,4 +274,93 @@ func (c SMTPConfig) sendMailWithTrace(recipientEmail string, body string) ([]str
 	addLog("SMTP session completed successfully")
 
 	return logs, nil
+}
+
+func (c ResendConfig) sendMailWithTrace(recipientEmail string, body string) ([]string, error) {
+	logs := []string{}
+	addLog := func(format string, args ...any) {
+		logs = append(logs, fmt.Sprintf("%s %s", time.Now().UTC().Format(time.RFC3339), fmt.Sprintf(format, args...)))
+	}
+
+	if !c.isConfigured() {
+		addLog("Resend config is incomplete: api_key_present=%t from_email=%q", c.APIKey != "", c.FromEmail)
+		return logs, fmt.Errorf("email delivery is not configured")
+	}
+
+	subject := extractHeaderValue(body, "Subject")
+	textBody := extractTextBody(body)
+	if subject == "" {
+		subject = "Blindspot email"
+	}
+	if textBody == "" {
+		textBody = body
+	}
+
+	payload := map[string]any{
+		"from":    c.FromEmail,
+		"to":      []string{recipientEmail},
+		"subject": subject,
+		"text":    textBody,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		addLog("Failed to encode Resend payload: %v", err)
+		return logs, err
+	}
+
+	addLog("Preparing Resend API request")
+	addLog("POST https://api.resend.com/emails")
+	addLog("From=%q To=%q Subject=%q", c.FromEmail, recipientEmail, subject)
+
+	req, err := http.NewRequest(http.MethodPost, "https://api.resend.com/emails", strings.NewReader(string(payloadBytes)))
+	if err != nil {
+		addLog("Failed to build HTTP request: %v", err)
+		return logs, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		addLog("HTTP request failed: %v", err)
+		return logs, err
+	}
+	defer resp.Body.Close()
+
+	responseBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 8192))
+	if readErr != nil {
+		addLog("Failed to read Resend response body: %v", readErr)
+		return logs, readErr
+	}
+
+	addLog("HTTP response status: %s", resp.Status)
+	if len(responseBody) > 0 {
+		addLog("Response body: %s", string(responseBody))
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return logs, fmt.Errorf("resend API returned %s", resp.Status)
+	}
+
+	addLog("Resend accepted the message successfully")
+	return logs, nil
+}
+
+func extractHeaderValue(message string, headerName string) string {
+	for _, line := range strings.Split(message, "\r\n") {
+		if strings.HasPrefix(strings.ToLower(line), strings.ToLower(headerName)+":") {
+			return strings.TrimSpace(strings.TrimPrefix(line, headerName+":"))
+		}
+	}
+	return ""
+}
+
+func extractTextBody(message string) string {
+	parts := strings.SplitN(message, "\r\n\r\n", 2)
+	if len(parts) != 2 {
+		return strings.TrimSpace(message)
+	}
+	return strings.TrimSpace(parts[1])
 }

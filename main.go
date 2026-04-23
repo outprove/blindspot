@@ -546,6 +546,7 @@ func (a *App) handleAdminMailTestPage(e *core.RequestEvent) error {
 	return a.render(e, http.StatusOK, "admin_mail_test.html", map[string]any{
 		"Title":              "Mail test | What is your Blindspot?",
 		"AdminEmail":         adminEmail,
+		"EmailProvider":      a.config.EmailProvider,
 		"FormEmail":          "",
 		"Error":              "",
 		"Success":            "",
@@ -554,6 +555,7 @@ func (a *App) handleAdminMailTestPage(e *core.RequestEvent) error {
 		"SMTPPort":           a.config.SMTP.Port,
 		"SMTPUsername":       a.config.SMTP.Username,
 		"SMTPFromEmail":      a.config.SMTP.FromEmail,
+		"ResendFromEmail":    a.config.Resend.FromEmail,
 		"ProfileLookupDraft": "",
 		"ProfileLookupError": "",
 		"CurrentUser":        nil,
@@ -569,6 +571,7 @@ func (a *App) handleAdminMailTest(e *core.RequestEvent) error {
 	data := map[string]any{
 		"Title":              "Mail test | What is your Blindspot?",
 		"AdminEmail":         adminEmail,
+		"EmailProvider":      a.config.EmailProvider,
 		"FormEmail":          email,
 		"Error":              "",
 		"Success":            "",
@@ -577,6 +580,7 @@ func (a *App) handleAdminMailTest(e *core.RequestEvent) error {
 		"SMTPPort":           a.config.SMTP.Port,
 		"SMTPUsername":       a.config.SMTP.Username,
 		"SMTPFromEmail":      a.config.SMTP.FromEmail,
+		"ResendFromEmail":    a.config.Resend.FromEmail,
 		"ProfileLookupDraft": "",
 		"ProfileLookupError": "",
 		"CurrentUser":        nil,
@@ -598,7 +602,7 @@ func (a *App) handleAdminMailTest(e *core.RequestEvent) error {
 		fmt.Sprintf("Sent at: %s", time.Now().UTC().Format(time.RFC3339)),
 	}, "\r\n")
 
-	traceLogs, err := a.config.SMTP.sendMailWithTrace(email, body)
+	traceLogs, err := a.config.sendMailWithTrace(email, body)
 	data["TraceLogs"] = traceLogs
 	if err != nil {
 		data["Error"] = fmt.Sprintf("SMTP test failed: %v", err)
@@ -1760,7 +1764,7 @@ func (a *App) isAdminAuthenticated(e *core.RequestEvent) bool {
 }
 
 func (a *App) sendAnswerEmail(recipientEmail string, profileName string, profileQuestion string, answerText string) error {
-	if !a.config.SMTP.isConfigured() {
+	if _, err := a.config.sendMailWithTrace(recipientEmail, ""); err != nil && strings.Contains(err.Error(), "not configured") {
 		return fmt.Errorf("email delivery is not configured")
 	}
 
@@ -1781,11 +1785,11 @@ func (a *App) sendAnswerEmail(recipientEmail string, profileName string, profile
 		answerText,
 	}, "\r\n")
 
-	return a.config.SMTP.sendMail(recipientEmail, body)
+	return a.config.sendMail(recipientEmail, body)
 }
 
 func (a *App) sendPasswordResetEmail(recipientEmail string, resetURL string) error {
-	if !a.config.SMTP.isConfigured() {
+	if _, err := a.config.sendMailWithTrace(recipientEmail, ""); err != nil && strings.Contains(err.Error(), "not configured") {
 		return fmt.Errorf("email delivery is not configured")
 	}
 
@@ -1801,11 +1805,11 @@ func (a *App) sendPasswordResetEmail(recipientEmail string, resetURL string) err
 		fmt.Sprintf("This link expires in %d hours.", resetTokenTTLHours),
 	}, "\r\n")
 
-	return a.config.SMTP.sendMail(recipientEmail, body)
+	return a.config.sendMail(recipientEmail, body)
 }
 
 func (a *App) sendEmailValidationEmail(recipientEmail string, validationURL string) error {
-	if !a.config.SMTP.isConfigured() {
+	if _, err := a.config.sendMailWithTrace(recipientEmail, ""); err != nil && strings.Contains(err.Error(), "not configured") {
 		return fmt.Errorf("email delivery is not configured")
 	}
 
@@ -1823,5 +1827,5 @@ func (a *App) sendEmailValidationEmail(recipientEmail string, validationURL stri
 		fmt.Sprintf("This link expires in %d hours.", emailValidationTTLHours),
 	}, "\r\n")
 
-	return a.config.SMTP.sendMail(recipientEmail, body)
+	return a.config.sendMail(recipientEmail, body)
 }
