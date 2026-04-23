@@ -3,6 +3,7 @@
     <span class="eyebrow">Admin</span>
     <h1>User management</h1>
     <p class="subtitle">Signed in as <strong>{{ .AdminEmail }}</strong>. Review users, inspect their questions and responses, or remove accounts.</p>
+    <p class="auth-meta"><a href="/admin-panel/mail-test">Open SMTP diagnostics</a></p>
     <form action="/admin-panel/logout" method="post" class="inline-form">
         <button type="submit" class="secondary-button">Log out</button>
     </form>

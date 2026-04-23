@@ -153,6 +153,8 @@ func main() {
 		se.Router.POST("/admin-panel/login", webApp.handleAdminLogin)
 		se.Router.POST("/admin-panel/logout", webApp.handleAdminLogout)
 		se.Router.GET("/admin-panel", webApp.handleAdminDashboard)
+		se.Router.GET("/admin-panel/mail-test", webApp.handleAdminMailTestPage)
+		se.Router.POST("/admin-panel/mail-test", webApp.handleAdminMailTest)
 		se.Router.GET("/admin-panel/users/{userID}", webApp.handleAdminUserDetail)
 		se.Router.POST("/admin-panel/users/{userID}/delete", webApp.handleAdminDeleteUser)
 		se.Router.GET("/about", webApp.handleAboutPage)
@@ -534,6 +536,77 @@ func (a *App) handleAdminDashboard(e *core.RequestEvent) error {
 		"ProfileLookupError": "",
 		"CurrentUser":        nil,
 	})
+}
+
+func (a *App) handleAdminMailTestPage(e *core.RequestEvent) error {
+	if !a.isAdminAuthenticated(e) {
+		return e.Redirect(http.StatusSeeOther, "/admin-panel/login")
+	}
+
+	return a.render(e, http.StatusOK, "admin_mail_test.html", map[string]any{
+		"Title":              "Mail test | What is your Blindspot?",
+		"AdminEmail":         adminEmail,
+		"FormEmail":          "",
+		"Error":              "",
+		"Success":            "",
+		"TraceLogs":          []string{},
+		"SMTPHost":           a.config.SMTP.Host,
+		"SMTPPort":           a.config.SMTP.Port,
+		"SMTPUsername":       a.config.SMTP.Username,
+		"SMTPFromEmail":      a.config.SMTP.FromEmail,
+		"ProfileLookupDraft": "",
+		"ProfileLookupError": "",
+		"CurrentUser":        nil,
+	})
+}
+
+func (a *App) handleAdminMailTest(e *core.RequestEvent) error {
+	if !a.isAdminAuthenticated(e) {
+		return e.Redirect(http.StatusSeeOther, "/admin-panel/login")
+	}
+
+	email := strings.TrimSpace(strings.ToLower(e.Request.FormValue("email")))
+	data := map[string]any{
+		"Title":              "Mail test | What is your Blindspot?",
+		"AdminEmail":         adminEmail,
+		"FormEmail":          email,
+		"Error":              "",
+		"Success":            "",
+		"TraceLogs":          []string{},
+		"SMTPHost":           a.config.SMTP.Host,
+		"SMTPPort":           a.config.SMTP.Port,
+		"SMTPUsername":       a.config.SMTP.Username,
+		"SMTPFromEmail":      a.config.SMTP.FromEmail,
+		"ProfileLookupDraft": "",
+		"ProfileLookupError": "",
+		"CurrentUser":        nil,
+	}
+
+	if !isValidEmail(email) {
+		data["Error"] = "Enter a valid email address."
+		return a.render(e, http.StatusOK, "admin_mail_test.html", data)
+	}
+
+	body := strings.Join([]string{
+		fmt.Sprintf("To: %s", email),
+		fmt.Sprintf("From: %s", a.config.SMTP.FromEmail),
+		"Subject: Blindspot SMTP test",
+		"MIME-Version: 1.0",
+		"Content-Type: text/plain; charset=UTF-8",
+		"",
+		"This is a test email from the Blindspot SMTP diagnostics page.",
+		fmt.Sprintf("Sent at: %s", time.Now().UTC().Format(time.RFC3339)),
+	}, "\r\n")
+
+	traceLogs, err := a.config.SMTP.sendMailWithTrace(email, body)
+	data["TraceLogs"] = traceLogs
+	if err != nil {
+		data["Error"] = fmt.Sprintf("SMTP test failed: %v", err)
+		return a.render(e, http.StatusOK, "admin_mail_test.html", data)
+	}
+
+	data["Success"] = fmt.Sprintf("Test email accepted for delivery to %s.", email)
+	return a.render(e, http.StatusOK, "admin_mail_test.html", data)
 }
 
 func (a *App) handleAdminUserDetail(e *core.RequestEvent) error {

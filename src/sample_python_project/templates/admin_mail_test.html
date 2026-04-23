@@ -1,0 +1,45 @@
+{{ define "content" }}
+<section class="auth-shell">
+    <section class="auth-panel admin-mail-panel">
+        <span class="eyebrow">Admin</span>
+        <h1 class="auth-title">SMTP diagnostics</h1>
+        <p class="subtitle">Send a test email and inspect the SMTP conversation step by step.</p>
+        <p class="auth-meta"><a href="/admin-panel">Back to admin dashboard</a></p>
+
+        <div class="panel panel-spaced">
+            <span class="eyebrow">Current config</span>
+            <p><strong>Host:</strong> {{ .SMTPHost }}</p>
+            <p><strong>Port:</strong> {{ .SMTPPort }}</p>
+            <p><strong>Username:</strong> {{ .SMTPUsername }}</p>
+            <p><strong>From:</strong> {{ .SMTPFromEmail }}</p>
+        </div>
+
+        {{ if .Error }}
+        <p class="form-message form-message-error">{{ .Error }}</p>
+        {{ end }}
+
+        {{ if .Success }}
+        <p class="form-message form-message-success">{{ .Success }}</p>
+        {{ end }}
+
+        <form action="/admin-panel/mail-test" method="post" class="auth-form panel-form">
+            <label class="field">
+                <span>Destination email address</span>
+                <input type="email" name="email" value="{{ .FormEmail }}" required>
+            </label>
+
+            <button type="submit" class="primary-button">Send test email</button>
+        </form>
+
+        <section class="panel panel-spaced">
+            <span class="eyebrow">Verbose log</span>
+            {{ if .TraceLogs }}
+            <pre class="trace-log">{{ range .TraceLogs }}{{ . }}
+{{ end }}</pre>
+            {{ else }}
+            <p class="field-hint">No SMTP trace yet. Submit a test email to capture the send steps.</p>
+            {{ end }}
+        </section>
+    </section>
+</section>
+{{ end }}

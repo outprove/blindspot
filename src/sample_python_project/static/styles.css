@@ -531,6 +531,22 @@ p {
     margin-top: 18px;
 }
 
+.admin-mail-panel {
+    max-width: 760px;
+}
+
+.trace-log {
+    margin: 0;
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: rgba(28, 29, 55, 0.92);
+    color: #edf3f8;
+    font: 0.9rem/1.6 "Courier New", Courier, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 .legal-panel {
     overflow: hidden;
 }
