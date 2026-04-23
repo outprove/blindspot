@@ -46,6 +46,7 @@ func loadAppConfig(path string) AppConfig {
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Printf("config file %q not found; using defaults", path)
+			applyEnvOverrides(&cfg)
 			appConfig = cfg
 			return cfg
 		}
