@@ -12,3 +12,6 @@ config.json
 *.exe~
 server.out
 server.err
+
+src/sample_python_project/static/*.key
+src/sample_python_project/static/*.key.pub
