@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -48,6 +49,7 @@ const (
 )
 
 var profileNameAlphabet = []byte("abcdefghijklmnopqrstuvwxyz0123456789")
+var profileNamePattern = regexp.MustCompile(`^[A-Za-z0-9]+$`)
 
 var errQuestionLocked = errors.New("active question already has responses")
 
@@ -215,6 +217,7 @@ func (a *App) ensureSchema(app core.App) error {
 			FOREIGN KEY (user_id) REFERENCES %s(id) ON DELETE CASCADE
 		)`, questionsTableName, usersTableName),
 		fmt.Sprintf("CREATE INDEX IF NOT EXISTS idx_questions_user_status ON %s (user_id, status)", questionsTableName),
+		fmt.Sprintf("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_profile_name_nocase ON %s (LOWER(profile_name))", usersTableName),
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
 			id TEXT PRIMARY KEY,
 			user_id TEXT NOT NULL,
@@ -829,14 +832,23 @@ func (a *App) handleSaveProfileName(e *core.RequestEvent) error {
 		})
 	}
 
-	if other, _ := a.findUserRowByProfileName(profileName); other != nil && other.ID != userRow.ID {
+	if !isValidProfileName(profileName) {
+		return a.renderDashboard(e, currentUser, map[string]any{
+			"ProfileError":     "Your profile name must be a single word using only letters and numbers.",
+			"ProfileNameDraft": profileName,
+		})
+	}
+
+	normalizedProfileName := strings.ToLower(profileName)
+
+	if other, _ := a.findUserRowByProfileName(normalizedProfileName); other != nil && other.ID != userRow.ID {
 		return a.renderDashboard(e, currentUser, map[string]any{
 			"ProfileError":     "That profile name is unavailable. Choose a different name.",
 			"ProfileNameDraft": profileName,
 		})
 	}
 
-	if err := a.updateUserProfile(userRow.ID, profileName); err != nil {
+	if err := a.updateUserProfile(userRow.ID, normalizedProfileName); err != nil {
 		return e.InternalServerError("failed to save profile", err)
 	}
 
@@ -1046,6 +1058,11 @@ func capitalizeSentence(text string) string {
 	}
 
 	return string(unicode.ToUpper(r)) + text[size:]
+}
+
+func isValidProfileName(value string) bool {
+	value = strings.TrimSpace(value)
+	return value != "" && profileNamePattern.MatchString(value)
 }
 
 func (a *App) renderDashboard(e *core.RequestEvent, user *UserView, extras map[string]any) error {
@@ -1426,7 +1443,22 @@ func (a *App) findUserRowByEmail(email string) (*userRow, error) {
 }
 
 func (a *App) findUserRowByProfileName(profileName string) (*userRow, error) {
-	return a.findSingleUser("profile_name", profileName)
+	row := &userRow{}
+	err := a.pb.DB().NewQuery(fmt.Sprintf(`
+		SELECT id, email, password_hash, profile_name, user_status, created_at
+		FROM %s
+		WHERE LOWER(profile_name) = LOWER({:value})
+		LIMIT 1
+	`, usersTableName)).Bind(dbx.Params{
+		"value": strings.TrimSpace(profileName),
+	}).One(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return row, nil
 }
 
 func (a *App) listUsers() []UserView {
