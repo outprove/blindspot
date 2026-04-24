@@ -165,6 +165,7 @@ func main() {
 		se.Router.GET("/register", webApp.handleRegisterPage)
 		se.Router.POST("/register", webApp.handleRegister)
 		se.Router.GET("/validate-email", webApp.handleValidateEmail)
+		se.Router.POST("/validate-email/resend", webApp.handleResendValidationEmail)
 		se.Router.GET("/login", webApp.handleLoginPage)
 		se.Router.POST("/login", webApp.handleLogin)
 		se.Router.GET("/forgot-password", webApp.handleForgotPasswordPage)
@@ -381,17 +382,9 @@ func (a *App) handleRegister(e *core.RequestEvent) error {
 		return e.InternalServerError("failed to create user", err)
 	}
 
-	_, validationToken, tokenErr := a.createEmailValidationToken(user.ID)
-	if tokenErr != nil {
-		return e.InternalServerError("failed to create email validation token", tokenErr)
-	}
-
-	validationURL := buildAbsoluteURL(e, "/validate-email?token="+validationToken)
-	validationNotice := fmt.Sprintf("A validation link was emailed to %s. Please validate your email to finish activating your account.", user.Email)
-	validationLink := ""
-	if err := a.sendEmailValidationEmail(user.Email, validationURL); err != nil {
-		validationNotice = "Email delivery is not configured, so use the validation link below for local development."
-		validationLink = validationURL
+	validationNotice, validationLink, err := a.issueValidationEmail(e, user)
+	if err != nil {
+		return e.InternalServerError("failed to create email validation token", err)
 	}
 
 	a.setSession(e, user.ID)
@@ -424,6 +417,31 @@ func (a *App) handleValidateEmail(e *core.RequestEvent) error {
 
 	data["Success"] = "Your email has been validated. Your account is now active."
 	return a.render(e, http.StatusOK, "validate_email.html", data)
+}
+
+func (a *App) handleResendValidationEmail(e *core.RequestEvent) error {
+	currentUser, userRow := a.currentUser(e)
+	if currentUser == nil || userRow == nil {
+		return e.Redirect(http.StatusSeeOther, "/login")
+	}
+
+	if currentUser.UserStatus == userStatusValidated {
+		return a.renderDashboard(e, currentUser, map[string]any{
+			"ValidationActionSuccess": "Your email is already validated.",
+		})
+	}
+
+	validationNotice, validationLink, err := a.issueValidationEmail(e, userRow)
+	if err != nil {
+		return e.InternalServerError("failed to resend validation email", err)
+	}
+
+	refreshedRow, _ := a.findUserRowByID(userRow.ID)
+	refreshedUser := a.userRowToView(refreshedRow)
+	return a.renderDashboard(e, refreshedUser, map[string]any{
+		"ValidationActionSuccess": validationNotice,
+		"ValidationLink":          validationLink,
+	})
 }
 
 func (a *App) handleLoginPage(e *core.RequestEvent) error {
@@ -995,6 +1013,7 @@ func (a *App) renderDashboard(e *core.RequestEvent, user *UserView, extras map[s
 		"CanEditActiveQuestion":          canEditActiveQuestion,
 		"ValidationNotice":               "",
 		"ValidationLink":                 "",
+		"ValidationActionSuccess":        "",
 		"DeleteAccountError":             "",
 		"DeleteAccountConfirmationDraft": "",
 	}
@@ -1002,6 +1021,23 @@ func (a *App) renderDashboard(e *core.RequestEvent, user *UserView, extras map[s
 		data[k] = v
 	}
 	return a.render(e, http.StatusOK, "home.html", data)
+}
+
+func (a *App) issueValidationEmail(e *core.RequestEvent, user *userRow) (string, string, error) {
+	_, validationToken, tokenErr := a.createEmailValidationToken(user.ID)
+	if tokenErr != nil {
+		return "", "", tokenErr
+	}
+
+	validationURL := buildAbsoluteURL(e, "/validate-email?token="+validationToken)
+	validationNotice := fmt.Sprintf("A validation link was emailed to %s. Please validate your email to finish activating your account.", user.Email)
+	validationLink := ""
+	if err := a.sendEmailValidationEmail(user.Email, validationURL); err != nil {
+		validationNotice = "Email delivery is not configured, so use the validation link below for local development."
+		validationLink = validationURL
+	}
+
+	return validationNotice, validationLink, nil
 }
 
 func (a *App) renderPublicProfile(e *core.RequestEvent, user *UserView, extras map[string]any) error {

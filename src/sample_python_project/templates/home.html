@@ -28,8 +28,18 @@
     <p class="form-message form-message-success">{{ .ValidationNotice }}</p>
     {{ end }}
 
+    {{ if .ValidationActionSuccess }}
+    <p class="form-message form-message-success">{{ .ValidationActionSuccess }}</p>
+    {{ end }}
+
     {{ if .ValidationLink }}
     <p class="auth-meta"><a href="{{ .ValidationLink }}">Open your local validation link</a></p>
+    {{ end }}
+
+    {{ if ne .CurrentUser.UserStatus .UserStatusValidated }}
+    <form action="/validate-email/resend" method="post" class="inline-form">
+        <button type="submit" class="secondary-button">Resend validation email</button>
+    </form>
     {{ end }}
 
     {{ if .ProfileError }}
