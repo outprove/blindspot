@@ -16,6 +16,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
@@ -958,6 +960,8 @@ func (a *App) handlePublicAnswer(e *core.RequestEvent) error {
 		})
 	}
 
+	answerText = formatSubmittedAnswer(answerText)
+
 	response, err := a.createResponse(user.ID, user.ActiveQuestion.ID, answerText)
 	if err != nil {
 		return e.InternalServerError("failed to save response", err)
@@ -978,6 +982,70 @@ func (a *App) handlePublicAnswer(e *core.RequestEvent) error {
 	return a.renderPublicProfile(e, user, map[string]any{
 		"SubmissionSuccess": submissionSuccess,
 	})
+}
+
+func formatSubmittedAnswer(raw string) string {
+	normalized := strings.TrimSpace(raw)
+	if normalized == "" {
+		return ""
+	}
+
+	normalized = strings.ToLower(normalized)
+	normalized = strings.Join(strings.Fields(normalized), " ")
+
+	sentences := splitIntoSentences(normalized)
+	if len(sentences) == 0 {
+		return capitalizeSentence(normalized)
+	}
+
+	formatted := make([]string, 0, len(sentences))
+	for _, sentence := range sentences {
+		sentence = strings.TrimSpace(sentence)
+		if sentence == "" {
+			continue
+		}
+		formatted = append(formatted, capitalizeSentence(sentence)+".")
+	}
+
+	return strings.Join(formatted, "  \n\n")
+}
+
+func splitIntoSentences(text string) []string {
+	var sentences []string
+	var current strings.Builder
+
+	for _, r := range text {
+		switch r {
+		case '.', '!', '?':
+			sentence := strings.TrimSpace(current.String())
+			if sentence != "" {
+				sentences = append(sentences, sentence)
+			}
+			current.Reset()
+		default:
+			current.WriteRune(r)
+		}
+	}
+
+	if tail := strings.TrimSpace(current.String()); tail != "" {
+		sentences = append(sentences, tail)
+	}
+
+	return sentences
+}
+
+func capitalizeSentence(text string) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+
+	r, size := utf8.DecodeRuneInString(text)
+	if r == utf8.RuneError && size == 0 {
+		return ""
+	}
+
+	return string(unicode.ToUpper(r)) + text[size:]
 }
 
 func (a *App) renderDashboard(e *core.RequestEvent, user *UserView, extras map[string]any) error {
