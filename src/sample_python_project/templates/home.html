@@ -50,10 +50,6 @@
     <p class="form-message form-message-success">{{ .ProfileSuccess }}</p>
     {{ end }}
 
-    <a class="api-link" href="/user/{{ .CurrentUser.ProfileName }}">
-        View your public page at /user/{{ .CurrentUser.ProfileName }}
-    </a>
-
     <form action="/profile" method="post" class="auth-form panel-form">
         <span class="eyebrow">Your Profile</span>
         <input type="hidden" name="profile_action" value="name">
@@ -73,6 +69,20 @@
         <button type="submit" class="primary-button">Save profile name</button>
     </form>
 </section>
+
+{{ if .CurrentUser.ActiveQuestion }}
+<section class="panel panel-spaced">
+    <span class="eyebrow">Share Your Profile</span>
+    <h2>Invite people to respond</h2>
+    {{ $publicURL := printf "%s://%s/user/%s" (or .RequestScheme "http") .RequestHost .CurrentUser.ProfileName }}
+    <div class="profile-share-row">
+        <a class="api-link" href="/user/{{ .CurrentUser.ProfileName }}">{{ $publicURL }}</a>
+        <button type="button" class="secondary-button share-button" onclick="copyDashboardProfileUrl('{{ .CurrentUser.ProfileName }}')">Share</button>
+    </div>
+    <p class="field-hint">Share this link so people can answer your active question anonymously.</p>
+    <p id="dashboard-share-status" class="field-hint share-status" aria-live="polite"></p>
+</section>
+{{ end }}
 
 <section class="panel panel-spaced">
     <span class="eyebrow">Your Question</span>
@@ -205,6 +215,20 @@
 </section>
 
 <script>
+function copyDashboardProfileUrl(profileName) {
+    const status = document.getElementById("dashboard-share-status");
+    const shareUrl = window.location.origin + "/user/" + profileName;
+    navigator.clipboard.writeText(shareUrl).then(function () {
+        if (status) {
+            status.textContent = "Profile link copied to clipboard. Share via email, text, or social media post.";
+        }
+    }).catch(function () {
+        if (status) {
+            status.textContent = "Couldn't copy automatically. Copy the public profile link manually instead.";
+        }
+    });
+}
+
 (() => {
     const dialog = document.getElementById("delete-account-dialog");
     const openButton = document.getElementById("open-delete-account-dialog");

@@ -234,6 +234,22 @@ p {
     margin-bottom: 12px;
 }
 
+.profile-id-heading {
+    margin: 0;
+    font-size: 1.15rem;
+    letter-spacing: 0;
+}
+
+.profile-page-title {
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+}
+
+.profile-id-smallcaps {
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+}
+
 .share-button {
     flex-shrink: 0;
 }
@@ -384,12 +400,17 @@ p {
 
 .readonly-question {
     margin-top: 18px;
-    padding: 18px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.72);
-    border: 1px solid var(--line);
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border: 0;
     white-space: pre-wrap;
-    line-height: 1.7;
+    line-height: 1.5;
+    font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+    text-shadow: 0 3px 12px rgba(28, 29, 55, 0.18);
 }
 
 .form-message {

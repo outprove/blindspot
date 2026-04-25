@@ -1,24 +1,25 @@
 {{ define "content" }}
 <section class="hero">
     <span class="eyebrow">Public Profile</span>
-    <h1>{{ .ProfileUser.ProfileName }}</h1>
+    <h1 class="profile-page-title">{{ .ProfileUser.ProfileName }}</h1>
     <div class="profile-share-row">
-        <span class="field-hint">Profile ID: <strong>{{ .ProfileUser.ProfileName }}</strong></span>
+        <h2 class="profile-id-heading">Profile ID: <span class="profile-id-smallcaps">{{ .ProfileUser.ProfileName }}</span></h2>
         <button type="button" class="secondary-button share-button" onclick="copyProfileUrl()">Share</button>
     </div>
     <p class="subtitle">Reply to this user's question through a simple anonymous answer form.</p>
     <p id="share-status" class="field-hint share-status" aria-live="polite"></p>
 </section>
 
+{{ if not .SubmissionSuccess }}
 <section class="panel">
     <span class="eyebrow">Question</span>
-    <h2>Current profile question</h2>
     {{ if .ActiveQuestion }}
-    <div class="readonly-question">{{ .ActiveQuestion.QuestionText }}</div>
+    <div class="readonly-question">"{{ .ActiveQuestion.QuestionText }}"</div>
     {{ else }}
     <p>This user has not published a question yet.</p>
     {{ end }}
 </section>
+{{ end }}
 
 {{ if .ActiveQuestion }}
 <section class="panel panel-spaced">
@@ -37,6 +38,11 @@
 
     {{ if .SubmissionSuccess }}
     <p class="form-message form-message-success">{{ .SubmissionSuccess }}</p>
+    <section class="panel panel-spaced">
+        <span class="eyebrow">Ask Your Own</span>
+        <h2>Want insight on your own blindspot?</h2>
+        <p>Register or log in using the links above, then create your own question and invite others to respond.</p>
+    </section>
     {{ else }}
     <form action="/user/{{ .ProfileUser.ProfileName }}" method="post" class="auth-form panel-form">
         <label class="field">
@@ -62,7 +68,7 @@
 function copyProfileUrl() {
     const status = document.getElementById("share-status");
     navigator.clipboard.writeText(window.location.href).then(function () {
-        status.textContent = "Profile link copied to clipboard.";
+        status.textContent = "Profile link copied to clipboard. Share via email, text, or social media post.";
     }).catch(function () {
         status.textContent = "Couldn't copy automatically. Copy the URL from your browser instead.";
     });

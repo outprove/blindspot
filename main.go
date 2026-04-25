@@ -1069,6 +1069,10 @@ func (a *App) renderDashboard(e *core.RequestEvent, user *UserView, extras map[s
 	questionGroups := a.loadQuestionGroups(user.ID)
 	questionDraft := ""
 	canEditActiveQuestion := true
+	requestScheme := "http"
+	if e.Request.TLS != nil {
+		requestScheme = "https"
+	}
 	if user.ActiveQuestion != nil {
 		questionDraft = user.ActiveQuestion.QuestionText
 		for _, group := range questionGroups {
@@ -1096,6 +1100,8 @@ func (a *App) renderDashboard(e *core.RequestEvent, user *UserView, extras map[s
 		"ProfileNameDraft":               user.ProfileName,
 		"QuestionDraft":                  questionDraft,
 		"CanEditActiveQuestion":          canEditActiveQuestion,
+		"RequestScheme":                  requestScheme,
+		"RequestHost":                    e.Request.Host,
 		"ValidationNotice":               "",
 		"ValidationLink":                 "",
 		"ValidationActionSuccess":        "",
