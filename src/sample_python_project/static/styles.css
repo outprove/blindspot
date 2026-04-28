@@ -292,6 +292,19 @@ p {
     margin-top: 28px;
 }
 
+.support-panel {
+    text-align: center;
+}
+
+.support-panel p {
+    margin-bottom: 18px;
+}
+
+.support-panel .bmc-btn-container {
+    display: flex;
+    justify-content: center;
+}
+
 .eyebrow {
     display: inline-block;
     margin-bottom: 12px;
