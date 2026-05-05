@@ -794,6 +794,19 @@ p {
         width: 100%;
     }
 
+    .home-search-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .home-search-field {
+        flex: 1 1 auto;
+    }
+
+    .home-search-form .nav-button {
+        width: 100%;
+    }
+
     .brand-logo img {
         height: 83px;
         max-width: 221px;
