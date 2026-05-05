@@ -56,17 +56,19 @@
         <label class="field">
             <span>Profile name</span>
             <input
+                id="profile-name-input"
                 type="text"
                 name="profile_name"
                 maxlength="{{ .ProfileNameMaxLength }}"
                 value="{{ .ProfileNameDraft }}"
+                data-initial-value="{{ .CurrentUser.ProfileName }}"
                 placeholder="Blindspot"
                 required
             >
         </label>
 
         <p class="field-hint">Maximum {{ .ProfileNameMaxLength }} characters. Must be unique.</p>
-        <button type="submit" class="primary-button">Save profile name</button>
+        <button type="submit" class="primary-button" id="profile-name-save-button" disabled>Save profile name</button>
     </form>
 </section>
 
@@ -111,6 +113,12 @@
     <p class="form-message form-message-success">{{ .QuestionActionSuccess }}</p>
     {{ end }}
 
+    {{ if .CurrentUser.ActiveQuestion }}
+    <div class="inline-form warning-actions">
+        <button type="button" class="warning-button" id="open-warning-dialog">Word of Warning</button>
+    </div>
+    {{ end }}
+
     <form action="/profile" method="post" class="auth-form panel-form">
         <input type="hidden" name="profile_action" value="question">
         <input type="hidden" name="profile_name" value="{{ .ProfileNameDraft }}">
@@ -136,6 +144,26 @@
     <form action="/question/complete" method="post" class="inline-form">
         <button type="submit" class="secondary-button">Mark current question as completed</button>
     </form>
+
+    <dialog class="warning-dialog" id="warning-dialog">
+        <section class="panel-form warning-dialog-form">
+            <span class="eyebrow">Word of Warning</span>
+            <h3>Every response is still someone's point of view</h3>
+            <p>
+                Any response you receive is not the truth. It is someone's opinion.
+            </p>
+            <p>
+                There is real value in asking for other people's perspectives, but everyone brings a point of view or bias that should be considered.
+            </p>
+            <p>
+                Treat feedback as data. Then take the extra step of measuring the quality of that data before deciding what it means for you.
+            </p>
+
+            <div class="warning-dialog-actions">
+                <button type="button" class="secondary-button" id="close-warning-dialog">Dismiss</button>
+            </div>
+        </section>
+    </dialog>
     {{ end }}
 </section>
 
@@ -230,6 +258,26 @@ function copyDashboardProfileUrl(profileName) {
 }
 
 (() => {
+    const profileNameInput = document.getElementById("profile-name-input");
+    const profileNameSaveButton = document.getElementById("profile-name-save-button");
+    if (profileNameInput && profileNameSaveButton) {
+        const initialValue = profileNameInput.dataset.initialValue || "";
+        const syncProfileNameButton = () => {
+            profileNameSaveButton.disabled = profileNameInput.value === initialValue;
+        };
+
+        syncProfileNameButton();
+        profileNameInput.addEventListener("input", syncProfileNameButton);
+    }
+
+    const warningDialog = document.getElementById("warning-dialog");
+    const warningOpenButton = document.getElementById("open-warning-dialog");
+    const warningCloseButton = document.getElementById("close-warning-dialog");
+    if (warningDialog && warningOpenButton && warningCloseButton && typeof warningDialog.showModal === "function") {
+        warningOpenButton.addEventListener("click", () => warningDialog.showModal());
+        warningCloseButton.addEventListener("click", () => warningDialog.close());
+    }
+
     const dialog = document.getElementById("delete-account-dialog");
     const openButton = document.getElementById("open-delete-account-dialog");
     const cancelButton = document.getElementById("cancel-delete-account-dialog");

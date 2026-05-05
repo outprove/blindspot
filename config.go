@@ -151,6 +151,23 @@ func (c AppConfig) sendMail(recipientEmail string, body string) error {
 	return err
 }
 
+func (c AppConfig) validateEmailProviderConfigured() error {
+	switch strings.ToLower(strings.TrimSpace(c.EmailProvider)) {
+	case "", "smtp":
+		if !c.SMTP.isConfigured() {
+			return fmt.Errorf("email delivery is not configured")
+		}
+		return nil
+	case "resend":
+		if !c.Resend.isConfigured() {
+			return fmt.Errorf("email delivery is not configured")
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported email provider %q", c.EmailProvider)
+	}
+}
+
 func (c AppConfig) sendMailWithTrace(recipientEmail string, body string) ([]string, error) {
 	switch strings.ToLower(strings.TrimSpace(c.EmailProvider)) {
 	case "", "smtp":

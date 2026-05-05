@@ -360,11 +360,11 @@ func (a *App) handleRegister(e *core.RequestEvent) error {
 		})
 	}
 
-	if len(password) < passwordMinLength {
+	if err := validatePasswordPolicy(password); err != nil {
 		return a.render(e, http.StatusOK, "register.html", map[string]any{
 			"Title":              "Register",
 			"FormEmail":          email,
-			"Error":              "Use a unique email and a password with at least 8 characters.",
+			"Error":              err.Error(),
 			"ProfileLookupDraft": "",
 			"ProfileLookupError": "",
 			"CurrentUser":        nil,
@@ -754,8 +754,8 @@ func (a *App) handleResetPassword(e *core.RequestEvent) error {
 		return a.render(e, http.StatusOK, "reset_password.html", data)
 	}
 
-	if len(password) < passwordMinLength {
-		data["Error"] = "Use a password with at least 8 characters."
+	if err := validatePasswordPolicy(password); err != nil {
+		data["Error"] = err.Error()
 		return a.render(e, http.StatusOK, "reset_password.html", data)
 	}
 
@@ -1058,6 +1058,29 @@ func capitalizeSentence(text string) string {
 	}
 
 	return string(unicode.ToUpper(r)) + text[size:]
+}
+
+func validatePasswordPolicy(password string) error {
+	if len(password) < passwordMinLength {
+		return fmt.Errorf("Use a password with at least %d characters, one uppercase letter, and one number or special character.", passwordMinLength)
+	}
+
+	hasUppercase := false
+	hasNumberOrSpecial := false
+	for _, r := range password {
+		if unicode.IsUpper(r) {
+			hasUppercase = true
+		}
+		if unicode.IsNumber(r) || (!unicode.IsLetter(r) && !unicode.IsSpace(r)) {
+			hasNumberOrSpecial = true
+		}
+	}
+
+	if !hasUppercase || !hasNumberOrSpecial {
+		return fmt.Errorf("Use a password with at least %d characters, one uppercase letter, and one number or special character.", passwordMinLength)
+	}
+
+	return nil
 }
 
 func isValidProfileName(value string) bool {
@@ -1906,8 +1929,8 @@ func (a *App) isAdminAuthenticated(e *core.RequestEvent) bool {
 }
 
 func (a *App) sendAnswerEmail(recipientEmail string, profileName string, profileQuestion string, answerText string) error {
-	if _, err := a.config.sendMailWithTrace(recipientEmail, ""); err != nil && strings.Contains(err.Error(), "not configured") {
-		return fmt.Errorf("email delivery is not configured")
+	if err := a.config.validateEmailProviderConfigured(); err != nil {
+		return err
 	}
 
 	body := strings.Join([]string{
@@ -1931,8 +1954,8 @@ func (a *App) sendAnswerEmail(recipientEmail string, profileName string, profile
 }
 
 func (a *App) sendPasswordResetEmail(recipientEmail string, resetURL string) error {
-	if _, err := a.config.sendMailWithTrace(recipientEmail, ""); err != nil && strings.Contains(err.Error(), "not configured") {
-		return fmt.Errorf("email delivery is not configured")
+	if err := a.config.validateEmailProviderConfigured(); err != nil {
+		return err
 	}
 
 	body := strings.Join([]string{
@@ -1951,8 +1974,8 @@ func (a *App) sendPasswordResetEmail(recipientEmail string, resetURL string) err
 }
 
 func (a *App) sendEmailValidationEmail(recipientEmail string, validationURL string) error {
-	if _, err := a.config.sendMailWithTrace(recipientEmail, ""); err != nil && strings.Contains(err.Error(), "not configured") {
-		return fmt.Errorf("email delivery is not configured")
+	if err := a.config.validateEmailProviderConfigured(); err != nil {
+		return err
 	}
 
 	body := strings.Join([]string{

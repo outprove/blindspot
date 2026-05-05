@@ -14,18 +14,6 @@
                 <a class="brand brand-logo" href="/" aria-label="Blindspot home">
                     <img src="/static/blindspot-logo.svg" alt="Blindspot">
                 </a>
-                <form action="/profile/search" method="post" class="header-search">
-                    <label class="header-search-label" for="profile_name_lookup">Know which user?</label>
-                    <input
-                        id="profile_name_lookup"
-                        class="header-search-input"
-                        type="text"
-                        name="profile_name"
-                        value="{{ .ProfileLookupDraft }}"
-                        required
-                    >
-                    <button type="submit" class="nav-button">Open</button>
-                </form>
             </div>
             <div class="header-tools">
                 <nav class="nav">

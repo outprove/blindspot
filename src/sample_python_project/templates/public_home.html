@@ -1,4 +1,23 @@
 {{ define "content" }}
+<section class="panel home-search-panel">
+    <span class="eyebrow">Find an Existing Profile</span>
+    <form action="/profile/search" method="post" class="home-search-form">
+        <label class="field home-search-field" for="profile_name_lookup">
+            <span class="sr-only">Find an existing profile</span>
+            <input
+                id="profile_name_lookup"
+                class="header-search-input"
+                type="text"
+                name="profile_name"
+                value="{{ .ProfileLookupDraft }}"
+                placeholder="Enter a profile ID"
+                required
+            >
+        </label>
+        <button type="submit" class="nav-button">Find</button>
+    </form>
+</section>
+
 <section class="hero">
     <span class="eyebrow">Public Home</span>
     <h1>What is your Blindspot?</h1>
@@ -7,17 +26,15 @@
         Each user can publish one focused question, invite anonymous responses, and review outside
         perspectives in one place.
     </p>
-    <br>
-    <h2> How do I use this site? </h2>
-    <p class="subtitle">
-
-        <ol>
-        <li class="subtitle"> Create and validate your account simply by putting in your email.
-        <li class="subtitle"> Customize your profile id which is the only thing to publicly identify you.
-        <li class="subtitle"> Think of a question you want to ask.
-        <li class="subtitle"> Share your profile page either personally or on your own social media.
+    <section class="how-it-works">
+        <h2>How do I use this site?</h2>
+        <ol class="how-it-works-list">
+            <li>Create an account by registering and validating your email. No other personal information is required.</li>
+            <li>Customize your profile id which is the only thing to publicly identify you.</li>
+            <li>Think of a question you want to ask.</li>
+            <li>Share your question and personal URL to whomever you like.</li>
         </ol>
-    </p>
+    </section>
 </section>
 
 <section class="grid">
