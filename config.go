@@ -137,8 +137,8 @@ func applyEnvOverrides(cfg *AppConfig) {
 		cfg.EmailProvider = "smtp"
 	}
 
-	// Railway exposes a PORT env var. We don't store it in config, but validating
-	// it here makes startup issues easier to spot if someone reuses the value.
+	// Container platforms often inject a PORT env var. We don't store it in config,
+	// but validating it here makes startup issues easier to spot.
 	if value := strings.TrimSpace(os.Getenv("PORT")); value != "" {
 		if _, err := strconv.Atoi(value); err != nil {
 			log.Printf("ignoring non-numeric PORT value %q", value)

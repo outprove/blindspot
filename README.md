@@ -65,29 +65,29 @@ Key fields:
 
 `config.example.json` shows a filled-in example. If the SMTP host or from-email is left blank, the app keeps the current fallback behavior and skips email delivery.
 
-## Deploy to Railway
+## Container Deployments
 
-This app can run on Railway as a single Docker-based service.
+This app can run as a single Docker-based service behind Coolify or any similar VPS container host.
 
-Important deployment note:
+Important deployment notes:
 
 - keep this app as a single instance
 - attach a persistent volume at `/app/pb_data`
-- use Railway environment variables for secrets instead of committing `config.json`
+- use environment variables for secrets instead of committing `config.json`
 
-### Files already prepared for Railway
+### Files already prepared for container deployment
 
 - `Dockerfile`
-- `railway-start.sh`
+- `docker-start.sh`
 - `.dockerignore`
 
-### Railway setup steps
+### Generic deployment steps
 
 1. Push this repo to GitHub.
-2. In Railway, create a new project from that GitHub repo.
-3. Let Railway detect and build the app from the included `Dockerfile`.
+2. Create a new application from that GitHub repo in your deployment platform.
+3. Build the app from the included `Dockerfile`.
 4. Add a volume and mount it at `/app/pb_data`.
-5. Set these environment variables in Railway:
+5. Set these environment variables:
 
 ```text
 SESSION_SECRET=use-a-long-random-secret
@@ -108,6 +108,6 @@ RESEND_FROM_EMAIL=
 ### Notes
 
 - `config.json` is intentionally excluded from the Docker build.
-- The app will start even without `config.json`; Railway env vars now override file-based config.
+- The app will start even without `config.json`; environment variables override file-based config.
 - If `EMAIL_PROVIDER=resend`, the app uses the Resend Email API instead of SMTP.
 - If the selected provider is not configured, email delivery keeps the current fallback behavior.

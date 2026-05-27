@@ -19,10 +19,10 @@ RUN apt-get update \
 COPY --from=builder /out/main /app/main
 COPY src /app/src
 COPY config.example.json /app/config.example.json
-COPY railway-start.sh /app/railway-start.sh
+COPY docker-start.sh /app/docker-start.sh
 
-RUN chmod +x /app/main /app/railway-start.sh
+RUN chmod +x /app/main /app/docker-start.sh
 
 EXPOSE 8080
 
-CMD ["/app/railway-start.sh"]
+CMD ["/app/docker-start.sh"]
