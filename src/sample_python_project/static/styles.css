@@ -375,6 +375,12 @@ p {
     justify-content: center;
 }
 
+.release-note + .release-note {
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px solid rgba(68, 90, 121, 0.18);
+}
+
 .eyebrow {
     display: inline-block;
     margin-bottom: 12px;
